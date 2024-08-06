@@ -1,0 +1,75 @@
+export const capturePDF = (selector, fileName) => {
+  setTimeout(() => {
+    const modalElement = document.querySelector(selector);
+
+    if (!modalElement) {
+      console.error('Modal content not found');
+      return;
+    }
+
+    // Use toPng from html-to-image
+    toPng(modalElement, { 
+      pixelRatio: 3.0, 
+     backgroundColor: null
+    })
+    .then(dataUrl => {
+      const img = new Image();
+      img.src = dataUrl;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+
+        const imgData = canvas.toDataURL('image/png');
+
+        // Determine the orientation based on content aspect ratio
+        const imgWidth = canvas.width;
+        const imgHeight = canvas.height;
+
+        const aspectRatio = imgWidth / imgHeight;
+        const isLandscape = aspectRatio > 1; // Landscape if aspect ratio is greater than 1
+
+        const doc = new jsPDF({
+          orientation: isLandscape ? "landscape" : "portrait",
+          unit: "mm",
+          format: isLandscape ? [297, 210] : [210, 297] // A4 dimensions in mm
+        });
+
+        // Dimensions for A4 paper
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+
+        
+        const padding = 10; 
+
+        // Adjust image size and position based on orientation
+        const imgPdfWidth = pageWidth - 2 * padding; 
+        const imgPdfHeight = imgHeight * imgPdfWidth / imgWidth;
+        const heightLeft = imgPdfHeight;
+
+        const x = padding; 
+        const y = (pageHeight - imgPdfHeight) / 2; // Center vertically
+
+        // Add the image to the PDF
+        doc.addImage(imgData, 'PNG', x, y, imgPdfWidth, imgPdfHeight);
+
+        // If the image is taller than one page, add additional pages
+        if (heightLeft > pageHeight) {
+          let position = y + imgPdfHeight;
+          while (heightLeft > position) {
+            doc.addPage();
+            doc.addImage(imgData, 'PNG', x, position - pageHeight, imgPdfWidth, imgPdfHeight);
+            position += imgPdfHeight;
+          }
+        }
+
+        doc.save(fileName) ;
+      };
+    })
+    .catch(error => {
+      console.error('Error capturing modal content:', error);
+    });
+  }, 500);
+};
