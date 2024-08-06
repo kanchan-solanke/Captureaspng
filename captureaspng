@@ -1,0 +1,21 @@
+export const capturePNG = async (selector, fileName) => {
+  try {
+   
+    // Capture the visible part of the document
+    const node = document.querySelector(selector);
+    const dataUrl = await toPng(node, {
+      backgroundColor: null,
+      pixelRatio: 3.0,
+    });
+
+    // Create a link element to download the PNG
+    const link = document.createElement('a');
+    link.download = fileName;
+    link.href = dataUrl;
+    link.click();
+
+    
+  } catch (error) {
+    console.error('Error capturing or converting the document:', error);
+  }
+};
